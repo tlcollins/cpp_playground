@@ -61,11 +61,14 @@ class cow : public animal {
   }
 };
 
-void debug() {
+void debug(int localcyclecount, vector<cow>& localcowvec) {
   for (int x=0; x< LINES; x++)
     mvprintw(x, 30, "|");
   
-  mvprintw(LINES-1, COLS-1, "");
+  mvprintw(0,0,"Cycles: %d", localcyclecount);
+  mvprintw(1,0,"Cows:  %5d", localcowvec.size());
+  
+  mvprintw(0, 29, "");
 }
 
 int main() {
@@ -75,6 +78,7 @@ int main() {
   srand(time(NULL));
   
   int ch;
+  int cyclecount = 0;
   
   int startingcows = 1000;
   
@@ -84,6 +88,7 @@ int main() {
     cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
   
   do {
+    cyclecount++;
     clear();
   
     for (auto& it : cowvec) {
@@ -91,7 +96,7 @@ int main() {
       it.render();
     }
     
-    debug();
+    debug(cyclecount, cowvec);
     refresh(); ch = getch();
   } while(ch != 'q');
   
