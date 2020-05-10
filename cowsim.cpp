@@ -11,7 +11,7 @@ class player {
   int y, x;
   
   player() {
-    y = 10; x = 10;
+    y = 1; x = 25;
   }
   
   void move(int direction) {
@@ -175,6 +175,7 @@ void grassspread(vector<grass>& localvec) {
 int main() {
   initscr();
   noecho();
+  //nodelay(stdscr, true);
   halfdelay(1);
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
