@@ -137,7 +137,7 @@ void birthfunc(vector<auto>& localvec) {
   }
 } // end of - void birthfunc()
 
-void checkoverlap(vector<auto>& localvec) {
+void checkoverlap(vector<ty_grass>& localvec) {
   for (int a = 0; a < localvec.size(); a++)
     for (int b = a + 1; b < localvec.size(); b++)
       if (localvec[a].x == localvec[b].x && localvec[a].y == localvec[b].y)
@@ -166,6 +166,8 @@ int main(int argc, char** argv) {
   
   //curses initialization
   initscr();
+  halfdelay(1);
+  noecho();
   clear();
   refresh();
   
@@ -183,7 +185,9 @@ int main(int argc, char** argv) {
   for (int i=0; i < startergrass; i++) grassvec.emplace_back((rand() % (LINES)), (rand() % (COLS - 30) + 30));
   for (int i=0; i < startercows; i++) cowvec.emplace_back((rand() % (LINES)), (rand() % (COLS - 30) + 30));
     
-  while (true) { // main sim loop
+  int ch;  
+    
+  while (ch != 'q') { // main sim loop
     clear();
     cyclecount++;
     
@@ -208,9 +212,9 @@ int main(int argc, char** argv) {
     for (auto& it : cowvec) it.render(4);
        
     debug(cyclecount, grassvec.size(), cowvec.size(), cowvec);
-    usleep(50000);
-    mvprintw(LINES-1,COLS-1,"");
+    mvprintw(LINES-1,28," ");
     refresh();
+    ch = getch();
   } // end of - main loop
 
   endwin();
