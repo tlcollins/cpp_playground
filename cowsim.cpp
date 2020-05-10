@@ -6,17 +6,43 @@
 
 using namespace std;
 
+class player {
+  public:
+  int y, x;
+  
+  player() {
+    y = 10; x = 10;
+  }
+  
+  void move(int direction) {
+    switch (direction) {
+      case 'w': y--; break;
+      case 'a': x--; break;
+      case 's': y++; break;
+      case 'd': x++; break;
+    }
+  }
+  
+  void render() {
+    attron(COLOR_PAIR(1));
+    mvprintw(y, x, "@");
+    attroff(COLOR_PAIR(1));
+  }
+};
+
 class animal {
   public:
   int y, x, age, direction;
   char renderchar;
   bool alive = true;
+  bool male;
   
   animal(int starty, int startx) {
     y = starty;
     x = startx;
     age = 0;
     direction = (rand() % 8) + 1;
+    male = (rand() % 2);
   }
   
   void render() {
@@ -31,6 +57,7 @@ class cow : public animal {
   }
   
   void move() {
+    age++;
     switch (direction) {          
       case 1: y--;      break;    // 8 1 2
       case 2: y--; x++; break;    // 7 C 3
@@ -59,6 +86,56 @@ class cow : public animal {
     if (direction == 9) direction = 1;
     if (direction == 0) direction = 8;
   }
+  
+  void render() {
+    if (age > 25) renderchar = 'O';
+    if (male) {
+      attron(COLOR_PAIR(4));
+      mvprintw(y, x, "%c", renderchar);
+      attroff(COLOR_PAIR(4));
+    } else {
+      attron(COLOR_PAIR(3));
+      mvprintw(y, x, "%c", renderchar);
+      attroff(COLOR_PAIR(3));
+    }
+  }  
+};
+
+class grass {
+  public:
+  int x, y, age;
+  bool alive = true;
+  char renderchar = '.';
+  
+  grass(int starty, int startx) {
+    y = starty;
+    x = startx;
+    age = 0;
+  }
+  
+  void cycleupdate() {
+    age++;
+  }
+  
+  bool birth() {
+    if (rand() % 70 == 1) return true;
+    else return false;
+  }
+  
+  void checkbounds() {
+    if (x < 0) alive = false;
+    if (y < 31) alive = false;
+    if (x >= LINES) alive = false;
+    if (y >= COLS) alive = false;
+  } // end of - void checkbounds()
+  
+  void render() {
+    if (age > 25) renderchar = ',';
+    if (age > 50) renderchar = ';';
+    attron(COLOR_PAIR(2));
+    mvprintw(y, x, "%c", renderchar);
+    attroff(COLOR_PAIR(2));
+  }
 };
 
 void debug(int localcyclecount, vector<cow>& localcowvec) {
@@ -66,35 +143,84 @@ void debug(int localcyclecount, vector<cow>& localcowvec) {
     mvprintw(x, 30, "|");
   
   mvprintw(0,0,"Cycles: %d", localcyclecount);
-  mvprintw(1,0,"Cows:  %5d", localcowvec.size());
+  mvprintw(1,0,"Cows:   %d", localcowvec.size());
   
   mvprintw(0, 29, "");
 }
+
+void grassspread(vector<grass>& localvec) {
+  size_t old_size = localvec.size();
+  for (int i = 0; i < old_size; i++) {
+    if(localvec[i].birth()) {
+      
+      // generate possible new grass location
+      int newy = localvec[i].y + ((rand() % 9) - 4);
+      int newx = localvec[i].x + ((rand() % 9) - 4);
+      
+      // check for overlaps
+      bool overlap = false;
+      for (auto& it : localvec) {
+        if (it.x == newx && it.y == newy)
+          overlap = true;
+      }
+      
+      if ((newy < 0) || (newx <= 30) || (newy >= LINES) || (newx >= COLS)) overlap = true;
+      
+      // emplace if no overlap
+      if (!overlap) localvec.emplace_back(newy, newx);
+    }
+  }
+} // end of - void birthfunc()
 
 int main() {
   initscr();
   noecho();
   halfdelay(1);
+  start_color();
+  init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
+  init_pair(2, COLOR_GREEN,   COLOR_BLACK); // 2 - GRASS  - GREEN   / BLACK
+  init_pair(3, COLOR_MAGENTA, COLOR_BLACK); // 3 - F COW  - MAGENTA / BLACK
+  init_pair(4, COLOR_CYAN,    COLOR_BLACK); // 4 - M COW  - CYAN    / BLACK
+  
   srand(time(NULL));
   
   int ch;
   int cyclecount = 0;
   
-  int startingcows = 1000;
+  int startingcows = 100;
+  int startinggrass = 300;
   
   vector<cow> cowvec;
+  vector<grass> grassvec;
   
-  for (int x = 0; x < startingcows; x++)
-    cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
+  player p1 = player();
   
+  for (int x = 0; x < startingcows; x++) cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
+  for (int x = 0; x < startinggrass; x++) grassvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
+   
   do {
     cyclecount++;
     clear();
   
-    for (auto& it : cowvec) {
-      it.move();
-      it.render();
+    // update all grass
+    for (auto& it : grassvec) it.cycleupdate();
+    grassspread(grassvec);
+  
+    //move all cows
+    for (auto& it : cowvec) it.move();
+    
+    //render loops
+    for (auto& it : grassvec) it.render();
+    for (auto& it : cowvec) it.render();
+    
+    switch (ch) {
+      case 'w': p1.move('w'); break;
+      case 'a': p1.move('a'); break;
+      case 's': p1.move('s'); break;
+      case 'd': p1.move('d'); break;
     }
+    
+    p1.render();
     
     debug(cyclecount, cowvec);
     refresh(); ch = getch();
