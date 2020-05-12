@@ -6,10 +6,6 @@
 
 using namespace std;
 
-class animal;
-class cow;
-class grass;
-
 class player {
   public:
   int y, x;
@@ -31,6 +27,50 @@ class player {
     attron(COLOR_PAIR(1));
     mvprintw(y, x, "@");
     attroff(COLOR_PAIR(1));
+  }
+};
+
+class grass {
+  public:
+  int x, y, age;
+  bool alive = true;
+  char renderchar = '.';
+  
+  grass(int starty, int startx) {
+    y = starty;
+    x = startx;
+    age = 0;
+  }
+  
+  void cycleupdate() {
+    age++;
+    if (age > 75)
+      if (rand() % 50 == 1)
+        alive = false;
+  }
+  
+  bool birth() {
+    if (rand() % 70 == 1) return true;
+    else return false;
+  }
+  
+  void kill() {
+    alive = false;
+  }
+  
+  void checkbounds() {
+    if (x < 0) alive = false;
+    if (y < 31) alive = false;
+    if (x >= LINES) alive = false;
+    if (y >= COLS) alive = false;
+  } // end of - void checkbounds()
+  
+  void render() {
+    if (age > 25) renderchar = ',';
+    if (age > 50) renderchar = ';';
+    attron(COLOR_PAIR(2));
+    mvprintw(y, x, "%c", renderchar);
+    attroff(COLOR_PAIR(2));
   }
 };
 
@@ -99,8 +139,8 @@ class cow : public animal {
   void eat(vector<grass>& localgrass) {
     for (auto& it : localgrass) {
       if ((x == it.x) && (y == it.y)) {
-	eaten++;
-	it.kill();
+        eaten++;
+        it.kill();
       }
     }
   }
@@ -118,53 +158,6 @@ class cow : public animal {
     }
   }  
 };
-
-class grass {
-  public:
-  int x, y, age;
-  bool alive = true;
-  char renderchar = '.';
-  
-  grass(int starty, int startx) {
-    y = starty;
-    x = startx;
-    age = 0;
-  }
-  
-  void cycleupdate() {
-    age++;
-  }
-  
-  bool birth() {
-    if (rand() % 70 == 1) return true;
-    else return false;
-  }
-  
-  void checkbounds() {
-    if (x < 0) alive = false;
-    if (y < 31) alive = false;
-    if (x >= LINES) alive = false;
-    if (y >= COLS) alive = false;
-  } // end of - void checkbounds()
-  
-  void render() {
-    if (age > 25) renderchar = ',';
-    if (age > 50) renderchar = ';';
-    attron(COLOR_PAIR(2));
-    mvprintw(y, x, "%c", renderchar);
-    attroff(COLOR_PAIR(2));
-  }
-};
-
-void debug(int localcyclecount, vector<cow>& localcowvec) {
-  for (int x=0; x< LINES; x++)
-    mvprintw(x, 30, "|");
-  
-  mvprintw(0,0,"Cycles: %d", localcyclecount);
-  mvprintw(1,0,"Cows:   %d", localcowvec.size());
-  
-  mvprintw(0, 29, "");
-}
 
 void grassspread(vector<grass>& localvec) {
   size_t old_size = localvec.size();
@@ -190,6 +183,32 @@ void grassspread(vector<grass>& localvec) {
   }
 } // end of - void birthfunc()
 
+void removegrass(vector<grass>& localvec) {
+  int i = 0;
+  do {
+    if (localvec[i].alive == false) {
+      localvec.erase(localvec.begin() + i);
+    } else {
+      i++;
+    }
+  } while (i != localvec.size());
+} // end of - void removenotalive()
+
+void debug(int localcyclecount, vector<cow>& localcowvec, vector<grass>& localgrassvec) {
+  for (int x=0; x< LINES; x++)
+    mvprintw(x, 30, "|");
+  
+  mvprintw(0,0,"Cycles: %d", localcyclecount);
+  mvprintw(1,0,"Grass:  %d", localgrassvec.size());
+  mvprintw(2,0,"Cows:   %d", localcowvec.size());
+  
+  
+  for (int x = 0; x < localcowvec.size(); x++) {
+    mvprintw(x+5,0,"y%-3d x%-3d e%-3d", localcowvec[x].y, localcowvec[x].x, localcowvec[x].eaten);
+  }
+  
+  mvprintw(0, 29, "");
+}
 int main() {
   initscr();
   noecho();
@@ -227,6 +246,9 @@ int main() {
   
     //move all cows
     for (auto& it : cowvec) it.move();
+    for (auto& it : cowvec) it.eat(grassvec);
+    
+    removegrass(grassvec);
     
     //render loops
     for (auto& it : grassvec) it.render();
@@ -241,7 +263,7 @@ int main() {
     
     p1.render();
     
-    debug(cyclecount, cowvec);
+    debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
   } while(ch != 'q');
   
