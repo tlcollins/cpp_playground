@@ -6,6 +6,10 @@
 
 using namespace std;
 
+class animal;
+class cow;
+class grass;
+
 class player {
   public:
   int y, x;
@@ -32,7 +36,7 @@ class player {
 
 class animal {
   public:
-  int y, x, age, direction;
+  int y, x, age, direction, eaten;
   char renderchar;
   bool alive = true;
   bool male;
@@ -43,11 +47,16 @@ class animal {
     age = 0;
     direction = (rand() % 8) + 1;
     male = (rand() % 2);
+    eaten = 0;
+  }
+
+  void kill() {
+    alive = false;
   }
   
   void render() {
     mvprintw(y, x, "%c", renderchar);
-  }  
+  }
 };
 
 class cow : public animal {
@@ -85,6 +94,15 @@ class cow : public animal {
     direction += ((rand() % 3) - 1);
     if (direction == 9) direction = 1;
     if (direction == 0) direction = 8;
+  }
+
+  void eat(vector<grass>& localgrass) {
+    for (auto& it : localgrass) {
+      if ((x == it.x) && (y == it.y)) {
+	eaten++;
+	it.kill();
+      }
+    }
   }
   
   void render() {
