@@ -48,13 +48,13 @@ class grass {
   
   void cycleupdate() {
     age++;
-    if (age > 100)
+    if (age > 150)
       if (rand() % 50 == 1)
         alive = false;
   }
   
   bool birth() {
-    if (rand() % 50 == 1) return true;
+    if (rand() % 75 == 1) return true;
     else return false;
   }
   
@@ -73,7 +73,7 @@ class grass {
 
 class animal {
   public:
-  int y, x, age, direction, eaten, fullness, targety, targetx, vision, children;
+  int y, x, age, direction, eaten, fullness, targety, targetx, vision, children, movecooldown, maxage;
   char renderchar;
   bool alive = true;
   bool male, target;
@@ -87,6 +87,7 @@ class animal {
     eaten = 0;
     fullness = 50;
     children = 0;
+    movecooldown = 0;
   }
   
   void kill() {
@@ -104,61 +105,66 @@ class cow : public animal {
     renderchar = 'c';
     vision = ((rand() % 5) + 4);
     target = false;
+    maxage = (rand() % 70) + 70;
   }
   
   void move(vector<grass>& localgrass) {
     age++; fullness--;
     
     if (fullness <= 0) alive = false;
-    if (age > 100) {
-      if (rand() % 20 == 1) {
+    if (age > maxage) {
+      int chancetodie = age % maxage;
+      if (rand() % maxage <= chancetodie) {
         alive = false;
       }
     }
     
-    if (!target) {
-      switch (direction) {          
-        case 1: y--;      break;    // 8 1 2
-        case 2: y--; x++; break;    // 7 C 3
-        case 3:      x++; break;    // 6 5 4
-        case 4: y++; x++; break;
-        case 5: y++;      break;
-        case 6: y++; x--; break;
-        case 7:      x--; break;
-        case 8: y--; x--; break;
-      }
-      
-      if (x < 31) { x++; direction = 3; }
-      if (x > COLS-1) { x--; direction = 7; }
-      if (y < 0) { y++; direction = 5; }
-      if (y > LINES-1) { y--; direction = 1; }
-      
-      direction += ((rand() % 3) - 1);
-      if (direction == 9) direction = 1;
-      if (direction == 0) direction = 8;
-      
-      if (fullness < 20) {
-        for (auto& it : localgrass) {
-          if ( (sqrt(pow((it.x - x), 2) + pow((it.y - y), 2) ) < vision) && (target == false) && (rand() % 4 == 1) ) {
-            target = true;
-            targety = it.y;
-            targetx = it.x;
+    if (movecooldown <= 0) {
+      if (target) {
+        if (targetx < x) x--;
+        if (targetx > x) x++;
+        if (targety < y) y--;
+        if (targety > y) y++;
+        if (targetx == x && targety == y) {
+          target = false;
+        }
+      } else {
+        switch (direction) {          
+          case 1: y--;      break;    // 8 1 2
+          case 2: y--; x++; break;    // 7 C 3
+          case 3:      x++; break;    // 6 5 4
+          case 4: y++; x++; break;
+          case 5: y++;      break;
+          case 6: y++; x--; break;
+          case 7:      x--; break;
+          case 8: y--; x--; break;
+        }
+        
+        if (x < 31)      { x++; direction = 3; }
+        if (x > COLS-1)  { x--; direction = 7; }
+        if (y < 0)       { y++; direction = 5; }
+        if (y > LINES-1) { y--; direction = 1; }
+        
+        direction += ((rand() % 3) - 1);
+        if (direction == 9) direction = 1;
+        if (direction == 0) direction = 8;
+        
+        if (fullness < 50) {
+          for (auto& it : localgrass) {
+            if ( (sqrt(pow((it.x - x), 2) + pow((it.y - y), 2) ) < vision) && (target == false) && (rand() % 4 == 1) ) {
+              target = true;
+              targety = it.y; targetx = it.x;
+            }
           }
         }
       }
     } else {
-      if (targetx < x) x--;
-      if (targetx > x) x++;
-      if (targety < y) y--;
-      if (targety > y) y++;
-      if (targetx == x && targety == y) {
-        target = false;
-      }
+      movecooldown--;
     }
   }
   
   bool birth() {
-    if (eaten >= 10 && children < 2) {
+    if (eaten >= 10 && children < 1) {
       eaten = 0;
       children++;
       return true;
@@ -174,6 +180,7 @@ class cow : public animal {
         fullness += 5;
         it.kill();
         target = false;
+        movecooldown = 2;
       }
     }
   }
@@ -278,11 +285,9 @@ int main() {
     for (auto& it : cowvec) it.eat(grassvec);
     
     //cow birth 
-    for (auto& it : cowvec) {
-      if (it.birth()) {
+    for (auto& it : cowvec)
+      if (it.birth())
         newcows.emplace_back(it.y, it.x);
-      }
-    }
     cowvec.insert(cowvec.end(), newcows.begin(), newcows.end());
     mvprintw(3,0,"NewCows:%d", newcows.size());
     newcows.clear();
