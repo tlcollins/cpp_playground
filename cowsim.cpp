@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <time.h> 
 #include <algorithm>
+#include <unistd.h>
+#include <cmath>
+#include <string>
 
 using namespace std;
 
@@ -45,13 +48,13 @@ class grass {
   
   void cycleupdate() {
     age++;
-    if (age > 75)
+    if (age > 100)
       if (rand() % 50 == 1)
         alive = false;
   }
   
   bool birth() {
-    if (rand() % 70 == 1) return true;
+    if (rand() % 50 == 1) return true;
     else return false;
   }
   
@@ -60,8 +63,8 @@ class grass {
   }
     
   void render() {
-    if (age > 25) renderchar = ',';
-    if (age > 50) renderchar = ';';
+    if (age > 33) renderchar = ',';
+    if (age > 66) renderchar = ';';
     attron(COLOR_PAIR(2));
     mvprintw(y, x, "%c", renderchar);
     attroff(COLOR_PAIR(2));
@@ -70,11 +73,10 @@ class grass {
 
 class animal {
   public:
-  int y, x, age, direction, eaten, fullness;
+  int y, x, age, direction, eaten, fullness, targety, targetx, vision, children;
   char renderchar;
   bool alive = true;
-  bool target = false;
-  bool male;
+  bool male, target;
   
   animal(int starty, int startx) {
     y = starty;
@@ -84,8 +86,9 @@ class animal {
     male = (rand() % 2);
     eaten = 0;
     fullness = 50;
+    children = 0;
   }
-
+  
   void kill() {
     alive = false;
   }
@@ -99,11 +102,19 @@ class cow : public animal {
   public:
   cow(int starty, int startx) : animal(starty, startx) {
     renderchar = 'c';
+    vision = ((rand() % 5) + 4);
+    target = false;
   }
   
-  void move() {
+  void move(vector<grass>& localgrass) {
     age++; fullness--;
+    
     if (fullness <= 0) alive = false;
+    if (age > 100) {
+      if (rand() % 20 == 1) {
+        alive = false;
+      }
+    }
     
     if (!target) {
       switch (direction) {          
@@ -117,34 +128,52 @@ class cow : public animal {
         case 8: y--; x--; break;
       }
       
-      if (x < 31) {
-        x++; direction = 3;
-      }
-      if (x > COLS-1) {
-        x--; direction = 7;
-      }
-      if (y < 0) {
-        y++; direction = 5;
-      }
-      if (y > LINES-1) {
-        y--; direction = 1;
-      }
+      if (x < 31) { x++; direction = 3; }
+      if (x > COLS-1) { x--; direction = 7; }
+      if (y < 0) { y++; direction = 5; }
+      if (y > LINES-1) { y--; direction = 1; }
       
       direction += ((rand() % 3) - 1);
       if (direction == 9) direction = 1;
       if (direction == 0) direction = 8;
+      
+      if (fullness < 20) {
+        for (auto& it : localgrass) {
+          if ( (sqrt(pow((it.x - x), 2) + pow((it.y - y), 2) ) < vision) && (target == false) && (rand() % 4 == 1) ) {
+            target = true;
+            targety = it.y;
+            targetx = it.x;
+          }
+        }
+      }
     } else {
-      
-      
+      if (targetx < x) x--;
+      if (targetx > x) x++;
+      if (targety < y) y--;
+      if (targety > y) y++;
+      if (targetx == x && targety == y) {
+        target = false;
+      }
+    }
+  }
+  
+  bool birth() {
+    if (eaten >= 10 && children < 2) {
+      eaten = 0;
+      children++;
+      return true;
+    } else {
+      return false;
     }
   }
 
-  void eat(vector<grass>& localgrass) {
-    for (auto& it : localgrass) {
+  void eat(vector<grass>& grassvec) {
+    for (auto& it : grassvec) {
       if ((x == it.x) && (y == it.y)) {
         eaten++;
-        fullness += 10;
+        fullness += 5;
         it.kill();
+        target = false;
       }
     }
   }
@@ -200,9 +229,8 @@ void debug(int localcyclecount, vector<cow>& localcowvec, vector<grass>& localgr
   mvprintw(1,0,"Grass:  %d", localgrassvec.size());
   mvprintw(2,0,"Cows:   %d", localcowvec.size());
   
-  
   for (int x = 0; x < localcowvec.size(); x++) {
-    mvprintw(x+5,0,"y%-3d x%-3d f%-3d", localcowvec[x].y, localcowvec[x].x, localcowvec[x].fullness);
+    mvprintw(x+5,0,"c%-2d a%-4d f%-3d e%-3d %s", x, localcowvec[x].age, localcowvec[x].fullness, localcowvec[x].eaten, localcowvec[x].target ? "true" : "false");
   }
   
   mvprintw(0, 29, "");
@@ -211,8 +239,8 @@ void debug(int localcyclecount, vector<cow>& localcowvec, vector<grass>& localgr
 int main() {
   initscr();
   noecho();
-  //nodelay(stdscr, true);
-  halfdelay(1);
+  nodelay(stdscr, true);
+ 
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
   init_pair(2, COLOR_GREEN,   COLOR_BLACK); // 2 - GRASS  - GREEN   / BLACK
@@ -224,10 +252,11 @@ int main() {
   int ch;
   int cyclecount = 0;
   
-  int startingcows = 10;
-  int startinggrass = 300;
+  int startingcows = 50;
+  int startinggrass = 1000;
   
   vector<cow> cowvec;
+  vector<cow> newcows;
   vector<grass> grassvec;
   
   player p1 = player();
@@ -240,19 +269,30 @@ int main() {
     clear();
   
     // update all grass
-    if (grassvec.size() > 0) for (auto& it : grassvec) it.cycleupdate();
+    for (auto& it : grassvec) it.cycleupdate();
     grassspread(grassvec);
   
     //move all cows
-    if (cowvec.size() > 0) for (auto& it : cowvec) it.move();
-    if (cowvec.size() > 0) for (auto& it : cowvec) it.eat(grassvec);
+    for (auto& it : cowvec) it.move(grassvec);
+  
+    for (auto& it : cowvec) it.eat(grassvec);
+    
+    //cow birth 
+    for (auto& it : cowvec) {
+      if (it.birth()) {
+        newcows.emplace_back(it.y, it.x);
+      }
+    }
+    cowvec.insert(cowvec.end(), newcows.begin(), newcows.end());
+    mvprintw(3,0,"NewCows:%d", newcows.size());
+    newcows.clear();
     
     removeitems(grassvec);
     removeitems(cowvec);
     
     //render loops
-    if (grassvec.size() > 0) for (auto& it : grassvec) it.render();
-    if (cowvec.size() > 0) for (auto& it : cowvec) it.render();
+    for (auto& it : grassvec) it.render();
+    for (auto& it : cowvec) it.render();
     
     switch (ch) {
       case 'w': p1.move('w'); break;
@@ -265,6 +305,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
+    usleep(50000);
   } while(ch != 'q');
   
   endwin();
