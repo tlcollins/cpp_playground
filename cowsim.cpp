@@ -8,7 +8,7 @@
 #include <cmath>
 #include <string>
 
-using namespace std;
+using namespace std; //new i7
 
 class player {
   public:
@@ -246,8 +246,9 @@ void debug(int localcyclecount, vector<cow>& localcowvec, vector<grass>& localgr
 int main() {
   initscr();
   noecho();
-  nodelay(stdscr, true);
- 
+  //  nodelay(stdscr, true);
+  halfdelay(1);
+  
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
   init_pair(2, COLOR_GREEN,   COLOR_BLACK); // 2 - GRASS  - GREEN   / BLACK
