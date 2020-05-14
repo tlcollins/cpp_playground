@@ -56,7 +56,7 @@ class grass {
   }
   
   void spread(vector<grass>& grassvec, vector<grass>& newgrass) {
-    if (rand() % 25 == 1) {
+    if (rand() % 10 == 1) {
       
       int newy = y + ((rand() % (growthreach * 2)) - growthreach);
       int newx = x + ((rand() % (growthreach * 2)) - growthreach);
@@ -249,7 +249,7 @@ int main() {
   initscr();
   noecho();
   nodelay(stdscr, true);
-  halfdelay(1);
+  //halfdelay(1);
   
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
@@ -263,7 +263,7 @@ int main() {
   int cyclecount = 0;
   
   int startingcows = 50;
-  int startinggrass = 1000;
+  int startinggrass = 100;
   
   vector<cow> cowvec;
   vector<cow> newcows;
@@ -274,12 +274,16 @@ int main() {
   
   player p1 = player();
   
-  for (int x = 0; x < startingcows; x++) cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
+  
   for (int x = 0; x < startinggrass; x++) grassvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
    
   do {
     cyclecount++;
     clear();
+    
+    if (cyclecount == 300) {
+      for (int x = 0; x < startingcows; x++) cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
+    }
   
     // update all grass
     for (auto& it : grassvec) it.cycleupdate();
