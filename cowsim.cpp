@@ -8,7 +8,7 @@
 #include <cmath>
 #include <string>
 
-using namespace std; //new i7
+using namespace std; //new i7asdasdasd
 
 class player {
   public:
