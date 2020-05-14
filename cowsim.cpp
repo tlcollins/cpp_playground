@@ -36,7 +36,7 @@ class player {
 
 class grass {
   public:
-  int x, y, age;
+  int x, y, age, worth;
   bool alive = true;
   char renderchar = '.';
   int growthreach = 3;
@@ -46,6 +46,7 @@ class grass {
     y = starty;
     x = startx;
     age = 0;
+    worth = (rand() % 4) + 5;
   }
   
   void cycleupdate() {
@@ -70,7 +71,7 @@ class grass {
       if (!overlap) {
         int localgrass = 0;
         for (auto& it : grassvec)
-          if (sqrt( pow((it.x - newx), 2) + pow((it.y - newy), 2) ) < growthreach) {
+          if (sqrt( pow((it.x - newx), 2) + pow((it.y - newy), 2) ) <= growthreach) {
             localgrass++;
             if (localgrass >= maxdensity) break;
           }
@@ -187,13 +188,14 @@ class cow : public animal {
   }
   
   bool birth() {
-    if (eaten >= 10 && children < 2 && !male) {
-      eaten = 0;
-      children++;
-      return true;
-    } else {
-      return false;
+    if (!male) {
+      if (eaten >= 10 && children < 2 && age > 25) {
+        eaten = 0;
+        children++;
+        return true;
+      }
     }
+    return false;
   }
 
   void eat(vector<grass>& grassvec) {
@@ -201,7 +203,7 @@ class cow : public animal {
       for (auto& it : grassvec) {
         if ((x == it.x) && (y == it.y)) {
           eaten++;
-          fullness += 5;
+          fullness += it.worth;
           it.kill();
           target = false;
           movecooldown = 2;
