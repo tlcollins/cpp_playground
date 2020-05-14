@@ -39,6 +39,8 @@ class grass {
   int x, y, age;
   bool alive = true;
   char renderchar = '.';
+  int growthreach = 5;
+  int maxdensity = 25;
   
   grass(int starty, int startx) {
     y = starty;
@@ -49,13 +51,34 @@ class grass {
   void cycleupdate() {
     age++;
     if (age > 150)
-      if (rand() % 50 == 1)
+      if (rand() % 10 == 1)
         alive = false;
   }
   
-  bool birth() {
-    if (rand() % 75 == 1) return true;
-    else return false;
+  void spread(vector<grass>& grassvec, vector<grass>& newgrassvec) {
+    if (rand() % 25 == 1) {
+      
+      int newy = y + ((rand() % (growthreach * 2)) - growthreach);
+      int newx = x + ((rand() % (growthreach * 2)) - growthreach);
+      
+      bool overlap = false;
+      for (auto& it : grassvec) {
+        if ((it.x == newx && it.y == newy) || (newy < 0) || (newx <= 30) || (newy >= LINES) || (newx >= COLS))
+          overlap = true; break;
+      }
+      
+      if (!overlap) {
+        int localgrass = 0;
+        for (auto& it : grassvec)
+          if (sqrt( pow((it.x - newx), 2) + pow((it.y - newy), 2) ) < growthreach) {
+            localgrass++;
+            if (localgrass >= maxdensity) break;
+          }
+        if (localgrass < maxdensity) {
+          newgrassvec.emplace_back(newy, newx);
+        }
+      }
+    }
   }
   
   void kill() {
@@ -164,7 +187,7 @@ class cow : public animal {
   }
   
   bool birth() {
-    if (eaten >= 10 && children < 1) {
+    if (eaten >= 10 && children < 2 && !male) {
       eaten = 0;
       children++;
       return true;
@@ -199,6 +222,7 @@ class cow : public animal {
   }  
 };
 
+/*
 void grassspread(vector<grass>& localvec) {
   size_t old_size = localvec.size();
   for (int i = 0; i < old_size; i++) {
@@ -221,7 +245,7 @@ void grassspread(vector<grass>& localvec) {
       if (!overlap) localvec.emplace_back(newy, newx);
     }
   }
-} // end of - void birthfunc()
+} // end of - void birthfunc()*/
 
 template <typename T>
 void removeitems(vector<T>& v) {
@@ -246,8 +270,8 @@ void debug(int localcyclecount, vector<cow>& localcowvec, vector<grass>& localgr
 int main() {
   initscr();
   noecho();
-  //  nodelay(stdscr, true);
-  halfdelay(1);
+  nodelay(stdscr, true);
+  //halfdelay(1);
   
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
@@ -260,12 +284,15 @@ int main() {
   int ch;
   int cyclecount = 0;
   
-  int startingcows = 50;
-  int startinggrass = 1000;
+  int startingcows = 100;
+  int startinggrass = 2500;
   
   vector<cow> cowvec;
   vector<cow> newcows;
   vector<grass> grassvec;
+  vector<grass> newgrassvec;
+  
+  //grassvec.reserve(15000);
   
   player p1 = player();
   
@@ -278,17 +305,24 @@ int main() {
   
     // update all grass
     for (auto& it : grassvec) it.cycleupdate();
-    grassspread(grassvec);
+    for (auto& it : grassvec) it.spread(grassvec, newgrassvec);
+    grassvec.insert(grassvec.end(), newgrassvec.begin(), newgrassvec.end());
+    mvprintw(4,0,"NewGrass:%d", newgrassvec.size());
+    newgrassvec.clear();
+    
+    //grassspread(grassvec);
   
     //move all cows
     for (auto& it : cowvec) it.move(grassvec);
-  
     for (auto& it : cowvec) it.eat(grassvec);
     
     //cow birth 
     for (auto& it : cowvec)
-      if (it.birth())
-        newcows.emplace_back(it.y, it.x);
+      if (it.birth()) {
+        int howmany = rand() % 2;
+        for (int x = 0; x < howmany; x++)
+          newcows.emplace_back(it.y, it.x);
+      }
     cowvec.insert(cowvec.end(), newcows.begin(), newcows.end());
     mvprintw(3,0,"NewCows:%d", newcows.size());
     newcows.clear();
@@ -311,8 +345,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
-    usleep(50000);
-  } while(ch != 'q');
+  } while(ch != 'q' && cyclecount < 1000);
   
   endwin();
   return 0;
