@@ -41,6 +41,7 @@ class grass {
   char renderchar = '.';
   int growthreach = 3;
   int maxdensity = 5;
+  int maxage = 150;
   
   grass(int starty, int startx) {
     y = starty;
@@ -51,8 +52,8 @@ class grass {
   
   void cycleupdate() {
     age++;
-    if (age > 150)
-      if (rand() % 10 == 1)
+    if (age > maxage)
+      if (rand() % 2 == 1)
         alive = false;
   }
   
@@ -64,11 +65,22 @@ class grass {
       
       bool overlap = false;
       for (auto& it : grassvec) {
-        if ((it.x == newx && it.y == newy) || (newy < 0) || (newx <= 30) || (newy >= LINES) || (newx >= COLS))
+        if ((it.x == newx && it.y == newy) || (newy < 0) || (newx <= 30) || (newy >= LINES) || (newx >= COLS)) {
           overlap = true; break;
+        }
+      }
+      if (!overlap){
+        for (auto& it : newgrass) {
+          if (it.x == newx && it.y == newy) {
+            overlap = true; break;
+          }
+        }
       }
       
       if (!overlap) {
+        //newgrass.emplace_back(newy, newx);
+        
+        
         int localgrass = 0;
         for (auto& it : grassvec)
           if (sqrt( pow((it.x - newx), 2) + pow((it.y - newy), 2) ) <= growthreach) {
@@ -77,7 +89,7 @@ class grass {
           }
         if (localgrass < maxdensity) {
           newgrass.emplace_back(newy, newx);
-        }
+        }//*/
       }
     }
   }
@@ -87,8 +99,8 @@ class grass {
   }
     
   void render() {
-    if (age > 33) renderchar = ',';
-    if (age > 66) renderchar = ';';
+    if (age > (maxage / 3)) renderchar = ',';
+    if (age > ((maxage / 3) * 2)) renderchar = ';';
     attron(COLOR_PAIR(2));
     mvprintw(y, x, "%c", renderchar);
     attroff(COLOR_PAIR(2));
@@ -251,7 +263,6 @@ int main() {
   initscr();
   noecho();
   nodelay(stdscr, true);
-  //halfdelay(1);
   
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK); // 1 - PLAYER - RED     / BLACK
@@ -264,8 +275,8 @@ int main() {
   int ch;
   int cyclecount = 0;
   
-  int startingcows = 50;
-  int startinggrass = 100;
+  int startingcows = 100;
+  int startinggrass = 500;
   
   vector<cow> cowvec;
   vector<cow> newcows;
@@ -284,6 +295,7 @@ int main() {
     clear();
     
     if (cyclecount == 300) {
+      //halfdelay(1);
       for (int x = 0; x < startingcows; x++) cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
     }
   
@@ -329,7 +341,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
-  } while(ch != 'q' && cyclecount < 10000);
+  } while(ch != 'q' && cyclecount < 3000);
   
   endwin();
   return 0;
