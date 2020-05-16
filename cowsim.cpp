@@ -58,10 +58,10 @@ class grass {
   }
   
   void spread(vector<grass>& grassvec, vector<grass>& newgrass) {
-    if (rand() % 10 == 1) {
+    if (rand() % 25 == 1) {
       
-      int newy = y + ((rand() % (growthreach * 2)) - growthreach);
-      int newx = x + ((rand() % (growthreach * 2)) - growthreach);
+      int newy = y + ((rand() % (growthreach * 2)) - (growthreach - 1));
+      int newx = x + ((rand() % (growthreach * 2)) - (growthreach - 1));
       
       bool overlap = false;
       for (auto& it : grassvec) {
@@ -139,7 +139,7 @@ class cow : public animal {
   public:
   cow(int starty, int startx) : animal(starty, startx) {
     renderchar = 'c';
-    vision = ((rand() % 5) + 4);
+    vision = ((rand() % 5) + 2);
     target = false;
     maxage = (rand() % 70) + 70;
   }
@@ -201,10 +201,12 @@ class cow : public animal {
   
   bool birth() {
     if (!male) {
-      if (eaten >= 10 && children < 2 && age > 25) {
-        eaten = 0;
-        children++;
-        return true;
+      if (rand() % 3 == 1) {
+        if (eaten >= 10 && children < 2 && age > 25) {
+          eaten -= 8;
+          children++;
+          return true;
+        }
       }
     }
     return false;
@@ -315,8 +317,9 @@ int main() {
     //cow birth 
     for (auto& it : cowvec)
       if (it.birth()) {
-        newcows.emplace_back(it.y, it.x);
-        newcows.emplace_back(it.y, it.x);
+        int howmany = (rand() % 3) + 2;
+        for (int x = 0; x < howmany; x++)
+          newcows.emplace_back(it.y, it.x);
       }
     cowvec.insert(cowvec.end(), newcows.begin(), newcows.end());
     mvprintw(3,0,"NewCows: %d", newcows.size());
@@ -341,7 +344,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
-  } while(ch != 'q' && cyclecount < 3000);
+  } while(ch != 'q' /*&& cyclecount < 10000*/);
   
   endwin();
   return 0;
