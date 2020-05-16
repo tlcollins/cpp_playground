@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <cmath>
 #include <string>
+#include <random>
 
 using namespace std; //new i7asdasdasd
 
@@ -57,9 +58,13 @@ class grass {
         alive = false;
   }
   
-  void spread(vector<grass>& grassvec, vector<grass>& newgrass) {
-    if (rand() % 25 == 1) {
-      
+  void spread(vector<grass>& grassvec, vector<grass>& newgrass, default_random_engine& generator) {
+    //uniform_int_distribution<int> distribution(1,25);
+    //int dice_roll = distribution(generator);//*/
+    
+    if (rand() % 24 == 1) {
+    //if (dice_roll == 1) {    
+    
       int newy = y + ((rand() % (growthreach * 2)) - (growthreach - 1));
       int newx = x + ((rand() % (growthreach * 2)) - (growthreach - 1));
       
@@ -273,6 +278,7 @@ int main() {
   init_pair(4, COLOR_CYAN,    COLOR_BLACK); // 4 - M COW  - CYAN    / BLACK
   
   srand(time(NULL));
+  default_random_engine generator;
   
   int ch;
   int cyclecount = 0;
@@ -303,7 +309,7 @@ int main() {
   
     // update all grass
     for (auto& it : grassvec) it.cycleupdate();
-    for (auto& it : grassvec) it.spread(grassvec, newgrass);
+    for (auto& it : grassvec) it.spread(grassvec, newgrass, generator);
     grassvec.insert(grassvec.end(), newgrass.begin(), newgrass.end());
     mvprintw(4,0,"NewGrass:%d", newgrass.size());
     newgrass.clear();
@@ -344,7 +350,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
-  } while(ch != 'q' /*&& cyclecount < 10000*/);
+  } while(ch != 'q' && cyclecount < 3000);
   
   endwin();
   return 0;
