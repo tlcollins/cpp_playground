@@ -59,11 +59,11 @@ class grass {
   }
   
   void spread(vector<grass>& grassvec, vector<grass>& newgrass, default_random_engine& generator) {
-    //uniform_int_distribution<int> distribution(1,25);
-    //int dice_roll = distribution(generator);//*/
+    uniform_int_distribution<int> distribution(1,25);
+    int dice_roll = distribution(generator);
     
-    if (rand() % 24 == 1) {
-    //if (dice_roll == 1) {    
+    //if (rand() % 24 == 1) {
+    if (dice_roll == 1) {    
     
       int newy = y + ((rand() % (growthreach * 2)) - (growthreach - 1));
       int newx = x + ((rand() % (growthreach * 2)) - (growthreach - 1));
@@ -294,7 +294,6 @@ int main() {
   //grassvec.reserve(15000);
   
   player p1 = player();
-  
   
   for (int x = 0; x < startinggrass; x++) grassvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
    
