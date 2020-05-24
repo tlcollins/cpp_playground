@@ -9,7 +9,7 @@
 #include <string>
 #include <random>
 
-using namespace std; //new i7asdasdasd
+using namespace std;
 
 class player {
   public:
@@ -83,9 +83,6 @@ class grass {
       }
       
       if (!overlap) {
-        //newgrass.emplace_back(newy, newx);
-        
-        
         int localgrass = 0;
         for (auto& it : grassvec)
           if (sqrt( pow((it.x - newx), 2) + pow((it.y - newy), 2) ) <= growthreach) {
@@ -114,7 +111,7 @@ class grass {
 
 class animal {
   public:
-  int y, x, age, direction, eaten, fullness, targety, targetx, vision, children, movecooldown, maxage;
+  int y, x, age, direction, eaten, fullness, targety, targetx, vision, children, movecooldown, maxage, adultage;
   char renderchar;
   bool alive = true;
   bool male, target;
@@ -147,6 +144,7 @@ class cow : public animal {
     vision = ((rand() % 5) + 2);
     target = false;
     maxage = (rand() % 70) + 70;
+    adultage = 25;
   }
   
   void move(vector<grass>& localgrass) {
@@ -204,12 +202,17 @@ class cow : public animal {
     }
   }
   
-  bool birth() {
+  bool birth(cow& thisone, vector<cow>& cowvec) {
     if (!male) {
-      if (rand() % 3 == 1) {
-        if (eaten >= 10 && children < 2 && age > 25) {
-          eaten -= 8;
-          children++;
+      if (eaten > 10 && age > adultage) {
+        int localcows = 0;
+        for (auto& it : cowvec) {
+          if ( (sqrt(pow((thisone.x - it.x), 2) + pow((thisone.y - it.y), 2) ) < vision) ) {
+            localcows++;
+          }
+        }
+        eaten = 0;
+        if (localcows < 3) {
           return true;
         }
       }
@@ -233,7 +236,7 @@ class cow : public animal {
   }
   
   void render() {
-    if (age > 25) renderchar = 'O';
+    if (age > adultage) renderchar = 'O';
     if (male) {
       attron(COLOR_PAIR(4));
       mvprintw(y, x, "%c", renderchar);
@@ -290,7 +293,6 @@ int main() {
   vector<cow> newcows;
   vector<grass> grassvec;
   vector<grass> newgrass;
-  
   //grassvec.reserve(15000);
   
   player p1 = player();
@@ -301,7 +303,7 @@ int main() {
     cyclecount++;
     clear();
     
-    if (cyclecount == 300) {
+    if (cyclecount == 250) {
       //halfdelay(1);
       for (int x = 0; x < startingcows; x++) cowvec.emplace_back((rand() % LINES-1), ((rand() % (COLS - 30)) + 30));
     }
@@ -312,7 +314,6 @@ int main() {
     grassvec.insert(grassvec.end(), newgrass.begin(), newgrass.end());
     mvprintw(4,0,"NewGrass:%d", newgrass.size());
     newgrass.clear();
-    
     //grassspread(grassvec);
   
     //move all cows
@@ -321,7 +322,7 @@ int main() {
     
     //cow birth 
     for (auto& it : cowvec)
-      if (it.birth()) {
+      if (it.birth(it, cowvec)) {
         int howmany = (rand() % 3) + 2;
         for (int x = 0; x < howmany; x++)
           newcows.emplace_back(it.y, it.x);
@@ -349,7 +350,7 @@ int main() {
     
     debug(cyclecount, cowvec, grassvec);
     refresh(); ch = getch();
-  } while(ch != 'q' && cyclecount < 3000);
+  } while(ch != 'q');
   
   endwin();
   return 0;
